@@ -170,7 +170,7 @@ def initialize_system(ngx, led):
         print("    - Setting voltage: 25.0 V")
         ngx.set_voltage(25.0)
         print("    - Setting current limit: 0.1 A")
-        ngx.set_current(0.1)
+        ngx.set_current(6.0)
         print("    - Preparing output for master switch ON")
         ngx.set_output_select(True)
 
@@ -235,8 +235,8 @@ def main():
     LED_PIN = 17                       # GPIO pin number for LED
 
     # Timing configuration
-    ON_TIME = 55   # seconds
-    OFF_TIME = 5   # seconds
+    ON_TIME  = 5   # seconds
+    OFF_TIME = 1   # seconds
 
     # Create resource string for TCP/IP connection
     resource_string = f'TCPIP0::{POWER_SUPPLY_IP}::inst0::INSTR'
