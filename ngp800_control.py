@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 NGP800 Power Supply Control Script for Raspberry Pi
-Based on RsNgx_GettingStarted_Example.py
+Periodic ON/OFF control: 55 seconds ON, 5 seconds OFF
 
 Requirements:
     pip install pyvisa pyvisa-py
@@ -15,6 +15,8 @@ Configuration:
 
 import time
 import pyvisa
+import signal
+import sys
 
 
 class NGP800Controller:
@@ -126,94 +128,183 @@ class NGP800Controller:
             self.rm.close()
 
 
+def initialize_power_supply(ngx):
+    """
+    Initialize power supply with default channel configurations
+
+    Args:
+        ngx: NGP800Controller instance
+    """
+    print("\n" + "=" * 60)
+    print("Initializing Power Supply")
+    print("=" * 60)
+
+    # Reset instrument
+    print("\nResetting instrument...")
+    ngx.reset()
+
+    # Master switch for all the outputs - switch OFF
+    print("Turning OFF all outputs (master switch)...")
+    ngx.set_general_output_state(False)
+
+    # Configure Output 1
+    print("\nConfiguring Output 1:")
+    print("  - Selecting channel 1")
+    ngx.select_channel(1)
+    print("  - Setting voltage: 3.3 V")
+    ngx.set_voltage(3.3)
+    print("  - Setting current limit: 0.1 A")
+    ngx.set_current(0.1)
+    print("  - Preparing output for master switch ON")
+    ngx.set_output_select(True)
+
+    # Configure Output 2
+    print("\nConfiguring Output 2:")
+    print("  - Selecting channel 2")
+    ngx.select_channel(2)
+    print("  - Setting voltage: 5.1 V")
+    ngx.set_voltage(5.1)
+    print("  - Setting current limit: 0.05 A")
+    ngx.set_current(0.05)
+    print("  - Preparing output for master switch ON")
+    ngx.set_output_select(True)
+
+    print("\n" + "=" * 60)
+    print("Initialization completed!")
+    print("=" * 60)
+
+
+def turn_on_outputs(ngx):
+    """
+    Turn ON all configured outputs
+
+    Args:
+        ngx: NGP800Controller instance
+    """
+    print("\n🟢 Turning ON all outputs...")
+    ngx.set_general_output_state(True)
+
+    # Wait for outputs to settle
+    time.sleep(0.5)
+
+    # Read and display measurements
+    ngx.select_channel(1)
+    voltage1, current1 = ngx.read_measurement()
+    print(f"   Output 1: {voltage1:.4f} V, {current1:.6f} A")
+
+    ngx.select_channel(2)
+    voltage2, current2 = ngx.read_measurement()
+    print(f"   Output 2: {voltage2:.4f} V, {current2:.6f} A")
+
+
+def turn_off_outputs(ngx):
+    """
+    Turn OFF all outputs
+
+    Args:
+        ngx: NGP800Controller instance
+    """
+    print("\n🔴 Turning OFF all outputs...")
+    ngx.set_general_output_state(False)
+
+
 def main():
-    """Main function demonstrating NGP800 control"""
+    """
+    Main function: Initialize and run periodic ON/OFF cycle
+    55 seconds ON, 5 seconds OFF
+    """
 
     # Configuration - Edit this to match your NGP800's IP address
     POWER_SUPPLY_IP = '10.102.52.45'  # Change to your NGP800's IP address
+
+    # Timing configuration
+    ON_TIME = 55   # seconds
+    OFF_TIME = 5   # seconds
 
     # Create resource string for TCP/IP connection
     resource_string = f'TCPIP0::{POWER_SUPPLY_IP}::inst0::INSTR'
 
     print("=" * 60)
-    print("NGP800 Power Supply Control Script")
+    print("NGP800 Power Supply Periodic Control")
     print("=" * 60)
+    print(f"Cycle: {ON_TIME} sec ON, {OFF_TIME} sec OFF")
+    print("Press Ctrl+C to stop")
+    print("=" * 60)
+
+    ngx = None
+
+    def signal_handler(sig, frame):
+        """Handle Ctrl+C gracefully"""
+        print("\n\n" + "=" * 60)
+        print("Ctrl+C detected. Shutting down...")
+        print("=" * 60)
+        if ngx:
+            try:
+                turn_off_outputs(ngx)
+                ngx.close()
+                print("Power supply outputs turned OFF and connection closed.")
+            except Exception as e:
+                print(f"Error during shutdown: {e}")
+        sys.exit(0)
+
+    # Register signal handler for Ctrl+C
+    signal.signal(signal.SIGINT, signal_handler)
 
     try:
         # Connect to the power supply
         print(f"\nConnecting to {resource_string}...")
         ngx = NGP800Controller(resource_string)
 
-        # Greetings, stranger...
+        # Get instrument identification
         idn = ngx.get_idn()
-        print(f'\nHello, I am: {idn}')
+        print(f'\nConnected to: {idn}')
 
-        # Reset instrument
-        print("\nResetting instrument...")
-        ngx.reset()
+        # Initialize power supply
+        initialize_power_supply(ngx)
 
-        # Master switch for all the outputs - switch OFF
-        print("Turning OFF all outputs (master switch)...")
-        ngx.set_general_output_state(False)
-
-        # Select and set Output 1
-        print("\nConfiguring Output 1:")
-        print("  - Selecting channel 1")
-        ngx.select_channel(1)
-        print("  - Setting voltage: 3.3 V")
-        ngx.set_voltage(3.3)
-        print("  - Setting current limit: 0.1 A")
-        ngx.set_current(0.1)
-        print("  - Preparing output for master switch ON")
-        ngx.set_output_select(True)
-
-        # Select and set Output 2
-        print("\nConfiguring Output 2:")
-        print("  - Selecting channel 2")
-        ngx.select_channel(2)
-        print("  - Setting voltage: 5.1 V")
-        ngx.set_voltage(5.1)
-        print("  - Setting current limit: 0.05 A")
-        ngx.set_current(0.05)
-        print("  - Preparing output for master switch ON")
-        ngx.set_output_select(True)
-
-        # The outputs are still OFF, they wait for this master switch:
-        print("\nTurning ON all outputs (master switch)...")
-        ngx.set_general_output_state(True)
-
-        # Insert a small pause to allow the instrument to settle the output
-        print("Waiting for outputs to settle...")
-        time.sleep(0.5)
-
-        # Read measurements from Output 1
-        print("\nReading measurements:")
-        ngx.select_channel(1)
-        voltage1, current1 = ngx.read_measurement()
-        print(f'  Output 1: {voltage1:.4f} V, {current1:.6f} A')
-
-        # Read measurements from Output 2
-        ngx.select_channel(2)
-        voltage2, current2 = ngx.read_measurement()
-        print(f'  Output 2: {voltage2:.4f} V, {current2:.6f} A')
-
+        # Periodic ON/OFF cycle
         print("\n" + "=" * 60)
-        print("Script completed successfully!")
+        print("Starting periodic cycle...")
         print("=" * 60)
 
-        # Close connection
-        ngx.close()
+        cycle_count = 0
+
+        while True:
+            cycle_count += 1
+            print(f"\n--- Cycle {cycle_count} ---")
+
+            # Turn ON
+            turn_on_outputs(ngx)
+            print(f"Outputs will remain ON for {ON_TIME} seconds...")
+            time.sleep(ON_TIME)
+
+            # Turn OFF
+            turn_off_outputs(ngx)
+            print(f"Outputs will remain OFF for {OFF_TIME} seconds...")
+            time.sleep(OFF_TIME)
 
     except pyvisa.errors.VisaIOError as e:
-        print(f"\nVISA Error: {e}")
-        print("Please check:")
+        print(f"\n❌ VISA Error: {e}")
+        print("\nPlease check:")
         print("  1. The IP address is correct")
         print("  2. The NGP800 is powered on and connected to the network")
         print("  3. The SCPI interface is enabled on the instrument")
+        sys.exit(1)
+
     except Exception as e:
-        print(f"\nError: {e}")
+        print(f"\n❌ Error: {e}")
         import traceback
         traceback.print_exc()
+        sys.exit(1)
+
+    finally:
+        # Ensure outputs are turned off on exit
+        if ngx:
+            try:
+                turn_off_outputs(ngx)
+                ngx.close()
+            except:
+                pass
 
 
 if __name__ == '__main__':
