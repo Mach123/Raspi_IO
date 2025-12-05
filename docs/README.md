@@ -1,8 +1,12 @@
-# NGP800 電源制御ドキュメント
+# Raspi_IO ドキュメント
 
-Rohde & Schwarz NGP800シリーズ電源をPyVISAで制御するための包括的なドキュメント集です。
+Raspberry Piを使用したNGP800電源制御とGPIO制御の包括的なドキュメント集です。
 
 ## ドキュメント一覧
+
+### NGP800電源制御
+
+Rohde & Schwarz NGP800シリーズ電源をPyVISAで制御するためのドキュメントです。
 
 ### 📘 [仕様・接続情報](./ngp800_specifications.md)
 NGP800の基本仕様、ネットワーク接続設定、トラブルシューティングガイド
@@ -200,7 +204,115 @@ pip3 install RsNgx
 | `ngx.output.set_select(True)` | `ngx.write('OUTPut:SELect ON')` |
 | `ngx.read()` | `ngx.query('READ?')` |
 
+---
+
+### GPIO制御
+
+Raspberry PiのGPIOピンを使用したLED、ボタン、センサー等の制御ドキュメントです。
+**推奨ライブラリ: gpiozero**
+
+#### 📕 [GPIO制御概要](./gpio_overview.md)
+GPIO制御の基礎、ライブラリ比較、GPIOピン配置、電気的特性
+
+**主な内容:**
+- GPIOとは
+- ライブラリ比較（gpiozero、RPi.GPIO、lgpio）
+- GPIOピン配置図
+- 電気的特性と安全上の注意
+- 基本的な使い方
+
+#### 📕 [gpiozero詳細ガイド](./gpio_gpiozero_guide.md)
+gpiozeroライブラリの完全ガイド
+
+**主な内容:**
+- 出力デバイス（LED、PWMLED、RGBLED、Buzzer、Motor、Servo）
+- 入力デバイス（Button、MotionSensor、LightSensor、DistanceSensor）
+- 複合デバイス（LEDBoard、LEDBarGraph、Robot）
+- デバイス間の連携（source/values）
+- イベント駆動プログラミング
+- ピンファクトリー
+- ベストプラクティス
+
+#### 📕 [ハードウェア接続ガイド](./gpio_hardware_connection.md)
+安全な配線方法と接続図
+
+**主な内容:**
+- 必要な部品リスト
+- 抵抗値の選び方
+- LED接続（単色、RGB）
+- ボタン接続（プルアップ/ダウン）
+- センサー接続（PIR、超音波、LDR）
+- モーター接続（DC、サーボ）
+- ブザー接続
+- 安全な配線のチェックリスト
+
+#### 📕 [gpiozero実装例集](./gpio_examples.md)
+実践的なサンプルコード集
+
+**主な内容:**
+- 基本例（LED点滅、ボタン制御）
+- PWM制御（呼吸するLED、明るさ制御）
+- RGB LED制御
+- 複数LED制御（LEDチェイサー、ナイトライダー）
+- トラフィックライト（信号機、歩行者用）
+- センサー連動（モーション、距離、明るさ）
+- ブザー制御（アラームシステム）
+- モーター制御
+- 実用的なアプリケーション（温度アラート、セキュリティシステム）
+- ゲーム（反応速度測定、サイモンゲーム）
+
+### GPIO クイックスタート
+
+#### 1. インストール
+
+```bash
+# gpiozero（通常プリインストール済み）
+sudo apt update
+sudo apt install python3-gpiozero
+```
+
+#### 2. 最小限のLED点滅例
+
+```python
+from gpiozero import LED
+
+led = LED(17)
+led.blink()  # 1秒間隔で点滅
+
+input("Enterで終了...")
+```
+
+#### 3. ボタンでLED制御
+
+```python
+from gpiozero import Button, LED
+from signal import pause
+
+button = Button(2)
+led = LED(17)
+
+button.when_pressed = led.on
+button.when_released = led.off
+
+pause()
+```
+
+#### 4. 実用的なプログラム
+
+本リポジトリには、すぐに使えるプログラムが用意されています：
+
+- **[gpio_led_blink.py](../gpio_led_blink.py)** - LED点滅（gpiozero版）
+- **[gpio_pwm_led.py](../gpio_pwm_led.py)** - PWMでLED明るさ制御
+- **[gpio_button_led.py](../gpio_button_led.py)** - ボタンでLED制御
+- **[gpio_led_blink_rpigpio.py](../gpio_led_blink_rpigpio.py)** - LED点滅（RPi.GPIO版、参考）
+
+詳細は [GPIO_README.md](../GPIO_README.md) を参照してください。
+
+---
+
 ## トラブルシューティング
+
+### NGP800電源制御
 
 ### 接続できない
 
@@ -238,7 +350,40 @@ print(error)
 
 詳細は [仕様・接続情報ドキュメント](./ngp800_specifications.md#トラブルシューティング) を参照してください。
 
+### GPIO制御
+
+#### LEDが点灯しない
+
+1. **LED向きの確認**
+   - 長い足（+）がGPIO側
+   - 短い足（-）がGND側
+
+2. **抵抗の確認**
+   - 330Ω抵抗が接続されているか
+
+3. **コード確認**
+   ```python
+   led = LED(17)
+   led.on()
+   print(f"LED is lit: {led.is_lit}")
+   ```
+
+#### ボタンが反応しない
+
+1. **接続確認**
+   - GPIO とGNDに接続されているか
+
+2. **プルアップ確認**
+   ```python
+   button = Button(2)  # デフォルトでプルアップ有効
+   print(f"Pressed: {button.is_pressed}")
+   ```
+
+詳細は [GPIO_README.md](../GPIO_README.md#トラブルシューティング) を参照してください。
+
 ## 参考リンク
+
+### NGP800電源制御
 
 ### 公式ドキュメント
 
@@ -262,6 +407,25 @@ print(error)
 
 - [SCPI Command Structure (Page 157)](https://www.manualslib.com/manual/1834650/Rohde-And-Schwarz-RAnds-Ngp800-Series.html?page=157)
 - [Configuration Commands (Page 117)](https://www.manualslib.com/manual/2605820/Rohde-And-Schwarz-Ngp800-Series.html?page=117)
+
+### GPIO制御
+
+#### 公式ドキュメント
+
+- [gpiozero Documentation](https://gpiozero.readthedocs.io/)
+- [Raspberry Pi GPIO Documentation](https://www.raspberrypi.com/documentation/computers/os.html#gpio-and-the-40-pin-header)
+- [GPIO Pinout (Interactive)](https://pinout.xyz/)
+
+#### チュートリアル
+
+- [gpiozero Recipes](https://gpiozero.readthedocs.io/en/stable/recipes.html)
+- [Raspberry Pi Physical Computing](https://projects.raspberrypi.org/en/projects/physical-computing)
+
+#### 参考ライブラリ（その他）
+
+- [RPi.GPIO Documentation](https://sourceforge.net/p/raspberry-gpio-python/wiki/Home/)
+- [lgpio Documentation](http://abyz.me.uk/lg/lgpio.html)
+- [pigpio Documentation](http://abyz.me.uk/rpi/pigpio/)
 
 ## 貢献
 
