@@ -147,27 +147,17 @@ def initialize_power_supply(ngx):
     print("Turning OFF all outputs (master switch)...")
     ngx.set_general_output_state(False)
 
-    # Configure Output 1
-    print("\nConfiguring Output 1:")
-    print("  - Selecting channel 1")
-    ngx.select_channel(1)
-    print("  - Setting voltage: 3.3 V")
-    ngx.set_voltage(3.3)
-    print("  - Setting current limit: 0.1 A")
-    ngx.set_current(0.1)
-    print("  - Preparing output for master switch ON")
-    ngx.set_output_select(True)
-
-    # Configure Output 2
-    print("\nConfiguring Output 2:")
-    print("  - Selecting channel 2")
-    ngx.select_channel(2)
-    print("  - Setting voltage: 5.1 V")
-    ngx.set_voltage(5.1)
-    print("  - Setting current limit: 0.05 A")
-    ngx.set_current(0.05)
-    print("  - Preparing output for master switch ON")
-    ngx.set_output_select(True)
+    # Configure all 4 outputs with 25V 0.1A
+    for channel in range(1, 5):
+        print(f"\nConfiguring Output {channel}:")
+        print(f"  - Selecting channel {channel}")
+        ngx.select_channel(channel)
+        print("  - Setting voltage: 25.0 V")
+        ngx.set_voltage(25.0)
+        print("  - Setting current limit: 0.1 A")
+        ngx.set_current(0.1)
+        print("  - Preparing output for master switch ON")
+        ngx.set_output_select(True)
 
     print("\n" + "=" * 60)
     print("Initialization completed!")
@@ -187,14 +177,11 @@ def turn_on_outputs(ngx):
     # Wait for outputs to settle
     time.sleep(0.5)
 
-    # Read and display measurements
-    ngx.select_channel(1)
-    voltage1, current1 = ngx.read_measurement()
-    print(f"   Output 1: {voltage1:.4f} V, {current1:.6f} A")
-
-    ngx.select_channel(2)
-    voltage2, current2 = ngx.read_measurement()
-    print(f"   Output 2: {voltage2:.4f} V, {current2:.6f} A")
+    # Read and display measurements from all 4 channels
+    for channel in range(1, 5):
+        ngx.select_channel(channel)
+        voltage, current = ngx.read_measurement()
+        print(f"   Output {channel}: {voltage:.4f} V, {current:.6f} A")
 
 
 def turn_off_outputs(ngx):
